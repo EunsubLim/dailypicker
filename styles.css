@@ -11,16 +11,20 @@ body {
   width: 100%;
 }
 
+.article-paper {
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+}
+
 .post-content h2 {
-  margin-top: 2rem;
-  font-size: 1.5rem;
+  margin-top: 2.75rem;
+  font-size: 1.55rem;
   font-weight: 900;
-  letter-spacing: -0.02em;
+  line-height: 1.35;
 }
 
 .post-content p {
-  margin-top: 1rem;
+  margin-top: 1.15rem;
   color: rgb(63 63 70);
-  font-size: 1.0625rem;
-  line-height: 1.85;
+  font-size: 1.08rem;
+  line-height: 1.95;
 }
