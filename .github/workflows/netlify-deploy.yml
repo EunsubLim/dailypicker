@@ -1,0 +1,28 @@
+name: Netlify Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Prepare deploy folder
+        run: node scripts/prepare-deploy.mjs
+
+      - name: Deploy to Netlify
+        run: npx --yes netlify-cli@latest deploy --prod --dir .deploy --site cosmic-mooncake-bcdc28 --auth "$NETLIFY_AUTH_TOKEN"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
