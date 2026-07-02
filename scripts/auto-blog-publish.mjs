@@ -8,7 +8,7 @@ const rootDir = path.resolve(__dirname, "..");
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
 const env = await loadEnv(path.join(rootDir, ".env"));
-const netlifySiteId = env.NETLIFY_SITE_ID || "cosmic-mooncake-bcdc28";
+const netlifySiteId = env.NETLIFY_SITE_ID || "6bb4af2f-7707-45cb-9c15-4848c3017c34";
 
 if (dryRun) {
   run(process.execPath, ["scripts/auto-blog.mjs", "--dry-run"]);

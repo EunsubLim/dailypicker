@@ -23,6 +23,6 @@ jobs:
         run: node scripts/prepare-deploy.mjs
 
       - name: Deploy to Netlify
-        run: npx --yes netlify-cli@latest deploy --prod --dir .deploy --site cosmic-mooncake-bcdc28 --auth "$NETLIFY_AUTH_TOKEN"
+        run: npx --yes netlify-cli@latest deploy --prod --dir .deploy --site 6bb4af2f-7707-45cb-9c15-4848c3017c34 --auth "$NETLIFY_AUTH_TOKEN"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}

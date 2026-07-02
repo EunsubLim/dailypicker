@@ -35,4 +35,4 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || 'cosmic-mooncake-bcdc28' }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || '6bb4af2f-7707-45cb-9c15-4848c3017c34' }}
