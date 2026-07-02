@@ -1,0 +1,10 @@
+{
+  "name": "dailypicker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "auto-blog": "node scripts/auto-blog.mjs",
+    "auto-blog:dry-run": "node scripts/auto-blog.mjs --dry-run"
+  }
+}

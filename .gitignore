@@ -2,3 +2,5 @@ dailypicker-site.zip
 *.log
 .DS_Store
 Thumbs.db
+.env
+data/
