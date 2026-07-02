@@ -28,6 +28,8 @@ jobs:
           POST_CATEGORY: ${{ vars.POST_CATEGORY || '부동산' }}
           POST_OUTPUT_DIR: posts
           MAX_REFERENCE_RESULTS: ${{ vars.MAX_REFERENCE_RESULTS || '10' }}
+          POST_MIN_CHARS: ${{ vars.POST_MIN_CHARS || '2000' }}
+          POST_MAX_CHARS: ${{ vars.POST_MAX_CHARS || '4000' }}
           SMARTSTORE_URL: ${{ vars.SMARTSTORE_URL }}
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}

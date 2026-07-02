@@ -27,6 +27,8 @@ Variables:
 - `SEARCH_KEYWORD`: 기본값 `부동산`
 - `POST_CATEGORY`: 기본값 `부동산`
 - `MAX_REFERENCE_RESULTS`: 기본값 `10`
+- `POST_MIN_CHARS`: 기본값 `2000`
+- `POST_MAX_CHARS`: 기본값 `4000`
 - `SMARTSTORE_URL`: 스마트스토어 주소
 
 등록 후 `.github/workflows/auto-blog.yml`이 6시간마다 자동으로 실행됩니다.

@@ -21,6 +21,8 @@ const config = {
   googleCseId: env.GOOGLE_CSE_ID || "",
   openAiKey: env.OPENAI_API_KEY || "",
   openAiModel: env.OPENAI_MODEL || "",
+  minPostChars: Number(env.POST_MIN_CHARS || 2000),
+  maxPostChars: Number(env.POST_MAX_CHARS || 4000),
 };
 
 if (dryRun) {
@@ -28,6 +30,7 @@ if (dryRun) {
   console.log(`[DailyPicker] keyword=${config.keyword}`);
   console.log(`[DailyPicker] provider=${detectSearchProvider(config) || "not configured"}`);
   console.log(`[DailyPicker] openai=${config.openAiKey ? "configured" : "fallback template"}`);
+  console.log(`[DailyPicker] post length=${config.minPostChars}~${config.maxPostChars} chars`);
   process.exit(0);
 }
 
@@ -50,11 +53,20 @@ await fs.writeFile(
   "utf8",
 );
 
-const article = config.openAiKey
+let article = config.openAiKey
   ? await generateWithOpenAI(config, topResults)
   : generateFallbackArticle(config, topResults);
 
+if (config.openAiKey) {
+  article = await ensureArticleLength(config, topResults, article);
+}
+
 const normalized = normalizeArticle(article, config, topResults);
+const normalizedLength = plainTextLength(normalized.bodyHtml);
+if (normalizedLength < config.minPostChars || normalizedLength > config.maxPostChars) {
+  fail(`생성된 본문 길이가 설정 범위를 벗어났습니다. 현재 ${normalizedLength}자, 목표 ${config.minPostChars}~${config.maxPostChars}자`);
+}
+
 const postPath = await writePost(config, normalized, topResults);
 await updatePostsIndex(config, normalized, postPath);
 await updateHomePage(config);
@@ -152,6 +164,10 @@ async function generateWithOpenAI(options, results) {
     "다만 없는 경험담, 방문 후기, 거래 사례, 확인하지 않은 수치는 지어내지 않는다.",
     "광고성 과장, 투자 수익 보장, 법률/세무 확정 표현은 피한다.",
     "부동산 주제는 정보성으로 쓰고, 독자가 확인해야 할 기준을 중심으로 쓴다.",
+    `bodyHtml의 태그를 제외한 본문 글자 수는 반드시 ${options.minPostChars}~${options.maxPostChars}자 사이로 작성한다.`,
+    "본문은 얇은 요약이 아니라 정보성 글이어야 한다. 도입 2문단, h2 소제목 5~7개, 각 소제목 아래 1~2문단으로 구성한다.",
+    "각 문단은 실제 독자가 확인할 기준, 주의할 점, 해석 방법을 담는다. 단순 목록만 나열하지 않는다.",
+    "summary는 80~130자 정도로 작성한다.",
     "JSON만 출력한다. 형식: {\"title\":\"...\",\"summary\":\"...\",\"bodyHtml\":\"<p>...</p><h2>...</h2>\",\"tags\":[\"...\"]}",
     "",
     `키워드: ${options.keyword}`,
@@ -203,6 +219,64 @@ function extractOpenAIText(data) {
   return parts.join("\n").trim();
 }
 
+async function ensureArticleLength(options, results, article) {
+  const currentLength = plainTextLength(article.bodyHtml || "");
+  if (currentLength >= options.minPostChars && currentLength <= options.maxPostChars) {
+    return article;
+  }
+
+  const direction = currentLength < options.minPostChars ? "늘려" : "줄여";
+  const prompt = [
+    "너는 한국어 블로그 편집자다.",
+    `아래 글을 정보성 블로그 글로 다시 ${direction} 써라.`,
+    `bodyHtml의 태그 제외 본문 글자 수는 반드시 ${options.minPostChars}~${options.maxPostChars}자 사이여야 한다.`,
+    "다른 블로그 문장이나 아래 참고 결과의 문장을 복사하지 않는다.",
+    "AI가 쓴 듯한 반복 도입과 과한 결론 문장을 피한다.",
+    "도입 2문단, h2 소제목 5~7개, 각 소제목 아래 1~2문단으로 구성한다.",
+    "확인 기준, 주의할 점, 해석 방법을 구체적으로 설명한다.",
+    "없는 경험담, 방문 후기, 거래 사례, 확인하지 않은 수치는 지어내지 않는다.",
+    "JSON만 출력한다. 형식: {\"title\":\"...\",\"summary\":\"...\",\"bodyHtml\":\"<p>...</p><h2>...</h2>\",\"tags\":[\"...\"]}",
+    "",
+    `현재 본문 길이: ${currentLength}자`,
+    `키워드: ${options.keyword}`,
+    "현재 글 JSON:",
+    JSON.stringify(article),
+    "",
+    "참고 검색 결과:",
+    ...results.map((item) => `${item.rank}. ${item.title}\nURL: ${item.url}\n요약: ${item.snippet}`),
+  ].join("\n");
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${options.openAiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: options.openAiModel,
+      input: prompt,
+      temperature: 0.65,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(`OpenAI 재작성 요청 실패: ${response.status} ${JSON.stringify(data).slice(0, 400)}`);
+  }
+
+  const text = extractOpenAIText(data);
+  try {
+    return JSON.parse(text.replace(/^```json\s*/i, "").replace(/```$/i, "").trim());
+  } catch {
+    return {
+      title: article.title || `${options.keyword} 검색 흐름 정리`,
+      summary: article.summary || `${options.keyword} 검색 결과를 바탕으로 핵심 기준을 정리했습니다.`,
+      bodyHtml: sanitizeGeneratedHtml(text),
+      tags: article.tags || [options.keyword, options.category],
+    };
+  }
+}
+
 function generateFallbackArticle(options, results) {
   const topTitles = results.slice(0, 3).map((item) => item.title).filter(Boolean);
   return {
@@ -210,12 +284,22 @@ function generateFallbackArticle(options, results) {
     summary: `${options.keyword} 검색 결과 상위 ${results.length}개를 기준으로 현재 사람들이 많이 확인하는 내용을 정리했습니다.`,
     bodyHtml: [
       `<p>오늘 검색 결과를 보면 ${escapeHtml(options.keyword)} 주제에서는 정보의 최신성, 지역별 차이, 실제 확인해야 할 조건이 중요하게 다뤄지고 있습니다. 특정 글을 그대로 옮기기보다, 상위 결과에서 반복되는 관점을 기준으로 독자가 점검할 항목을 정리했습니다.</p>`,
+      `<p>검색 상위 글들은 대체로 빠른 결론을 먼저 보여줍니다. 하지만 실제로 도움이 되는 정보성 글은 결론보다 기준을 남겨야 합니다. 그래서 이 글에서는 현재 검색 흐름을 바탕으로, 독자가 직접 자료를 확인할 때 놓치기 쉬운 부분을 차분히 정리합니다.</p>`,
       "<h2>상위 결과에서 반복되는 흐름</h2>",
       `<p>${escapeHtml(topTitles.join(", ")) || "상위 결과"}처럼 검색 상단에 노출되는 글들은 대체로 현재 시장 상황, 초보자가 놓치기 쉬운 기준, 실제 의사결정 전에 확인할 자료를 중심으로 구성되어 있습니다.</p>`,
+      `<p>다만 상위에 보이는 글이라고 해서 모두 같은 깊이를 가진 것은 아닙니다. 어떤 글은 최근 이슈를 빠르게 요약하고, 어떤 글은 특정 지역이나 조건을 중심으로 설명합니다. 여러 글을 함께 볼 때는 공통으로 반복되는 내용과 한쪽 글에만 강하게 나오는 내용을 나눠서 보는 편이 좋습니다.</p>`,
       "<h2>확인해야 할 기준</h2>",
-      "<ul><li>정보가 작성된 날짜와 업데이트 여부</li><li>지역, 가격대, 목적에 따른 차이</li><li>공식 자료와 현장 정보의 차이</li><li>광고성 표현과 실제 확인 가능한 정보의 구분</li></ul>",
+      "<p>먼저 정보가 작성된 날짜와 업데이트 여부를 확인해야 합니다. 부동산 정보는 금리, 대출 규정, 거래량, 공급 물량에 따라 빠르게 달라질 수 있습니다. 몇 달 전에는 맞았던 말이 지금은 애매해질 수 있으므로 작성 시점은 기본 필터입니다.</p>",
+      "<p>다음으로 지역, 가격대, 목적에 따른 차이를 봐야 합니다. 실거주인지 투자 관점인지, 매매인지 전세인지, 신축인지 구축인지에 따라 해석은 달라집니다. 같은 키워드로 검색된 글이라도 독자가 처한 상황에 맞지 않으면 참고 가치가 떨어질 수 있습니다.</p>",
+      "<h2>공식 자료와 현장 글을 같이 보는 이유</h2>",
+      "<p>블로그 글은 흐름을 빠르게 파악하는 데 좋지만, 최종 판단의 근거가 되기에는 부족할 수 있습니다. 실거래가, 청약 공고문, 등기부등본, 통계 자료처럼 공식 자료로 확인할 수 있는 내용은 직접 확인하는 편이 안전합니다.</p>",
+      "<p>반대로 공식 자료만 보면 현장에서 느끼는 분위기나 실제 생활 편의는 빠질 수 있습니다. 그래서 정보성 글은 두 가지를 연결해주는 역할을 해야 합니다. 숫자로 확인할 부분과 현장에서 다시 봐야 할 부분을 나눠주는 글이 더 실용적입니다.</p>",
+      "<h2>광고성 표현을 걸러 읽는 법</h2>",
+      "<p>검색 결과에는 정보 글과 홍보 글이 섞여 있습니다. 무조건 좋다, 지금이 기회다, 놓치면 늦는다는 식의 표현은 한 번 더 걸러 읽어야 합니다. 좋은 글은 보통 장점과 함께 조건, 제한, 확인할 자료를 같이 제시합니다.</p>",
+      "<p>광고나 제휴가 포함된 글 자체가 나쁜 것은 아닙니다. 중요한 것은 그 사실이 분명히 표시되어 있고, 독자가 직접 확인할 기준을 충분히 제공하는지입니다. 결론만 강하고 근거가 부족한 글은 참고용으로만 보는 편이 좋습니다.</p>",
       "<h2>읽을 때 주의할 점</h2>",
-      "<p>부동산 정보는 상황에 따라 빠르게 달라질 수 있습니다. 블로그 글은 판단의 출발점으로만 보고, 실제 결정 전에는 공공 데이터, 현장 확인, 전문가 상담을 함께 확인하는 편이 안전합니다.</p>",
+      "<p>부동산 정보는 상황에 따라 빠르게 달라질 수 있습니다. 블로그 글은 판단의 출발점으로만 보고, 실제 결정 전에는 공공 데이터, 현장 확인, 전문가 상담을 함께 확인하는 편이 안전합니다. 특히 계약, 대출, 세금이 얽힌 판단은 한두 개 글만 보고 결정하기 어렵습니다.</p>",
+      "<p>결국 검색 글을 읽고 남겨야 할 것은 확신이 아니라 체크리스트입니다. 어떤 자료를 더 봐야 하는지, 내 상황에 맞지 않는 전제는 무엇인지, 글에서 확인하지 못한 위험은 무엇인지가 남는 글이 실제로 쓸모 있는 글입니다.</p>",
     ].join("\n"),
     tags: [options.keyword, options.category, "검색 트렌드"],
   };
@@ -428,6 +512,22 @@ function sanitizeGeneratedHtml(html) {
   }
 
   return allowed;
+}
+
+function plainTextLength(html) {
+  const text = String(html || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#039;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length;
 }
 
 function cleanText(value) {
