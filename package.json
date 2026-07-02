@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "auto-blog": "node scripts/auto-blog.mjs",
-    "auto-blog:dry-run": "node scripts/auto-blog.mjs --dry-run"
+    "auto-blog:dry-run": "node scripts/auto-blog.mjs --dry-run",
+    "prepare-deploy": "node scripts/prepare-deploy.mjs",
+    "auto-blog:publish": "node scripts/auto-blog-publish.mjs",
+    "auto-blog:publish:dry-run": "node scripts/auto-blog-publish.mjs --dry-run"
   }
 }

@@ -4,3 +4,5 @@ dailypicker-site.zip
 Thumbs.db
 .env
 data/
+.deploy/
+node_modules/
