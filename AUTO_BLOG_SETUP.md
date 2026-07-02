@@ -8,7 +8,7 @@
    - `OPENAI_API_KEY`: 글 자동 작성용
    - `OPENAI_MODEL`: 사용할 글쓰기 모델
    - `NETLIFY_AUTH_TOKEN`: Netlify 개인 토큰
-   - `NETLIFY_SITE_ID`: Netlify 사이트 ID 또는 사이트 이름
+   - `NETLIFY_SITE_ID`: 기본값 `cosmic-mooncake-bcdc28`
 3. `run-publish-once.bat`을 실행하면 글 작성, GitHub 저장, Netlify 배포를 한 번 실행합니다.
 4. `run-publish-every-6h.bat`을 실행하면 6시간마다 반복 실행합니다.
 
@@ -21,7 +21,7 @@ Secrets:
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
 - `NETLIFY_AUTH_TOKEN`
-- `NETLIFY_SITE_ID`
+- `NETLIFY_SITE_ID`는 선택입니다. 비워두면 `cosmic-mooncake-bcdc28`로 배포합니다.
 
 Variables:
 - `SEARCH_KEYWORD`: 기본값 `부동산`

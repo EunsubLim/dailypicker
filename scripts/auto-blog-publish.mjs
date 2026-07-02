@@ -8,12 +8,13 @@ const rootDir = path.resolve(__dirname, "..");
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
 const env = await loadEnv(path.join(rootDir, ".env"));
+const netlifySiteId = env.NETLIFY_SITE_ID || "cosmic-mooncake-bcdc28";
 
 if (dryRun) {
   run(process.execPath, ["scripts/auto-blog.mjs", "--dry-run"]);
   run(process.execPath, ["scripts/prepare-deploy.mjs"]);
   console.log(`[DailyPicker] Netlify token=${env.NETLIFY_AUTH_TOKEN ? "configured" : "missing"}`);
-  console.log(`[DailyPicker] Netlify site=${env.NETLIFY_SITE_ID || "missing"}`);
+  console.log(`[DailyPicker] Netlify site=${netlifySiteId}`);
   process.exit(0);
 }
 
@@ -39,8 +40,8 @@ if (changedBeforeAdd.trim()) {
   console.log("[DailyPicker] GitHub에 올릴 새 변경분이 없습니다.");
 }
 
-if (!env.NETLIFY_AUTH_TOKEN || !env.NETLIFY_SITE_ID) {
-  console.log("[DailyPicker] NETLIFY_AUTH_TOKEN 또는 NETLIFY_SITE_ID가 없어 Netlify 배포를 건너뜁니다.");
+if (!env.NETLIFY_AUTH_TOKEN) {
+  console.log("[DailyPicker] NETLIFY_AUTH_TOKEN이 없어 Netlify 배포를 건너뜁니다.");
   process.exit(0);
 }
 
@@ -60,7 +61,7 @@ run(
     "--dir",
     ".deploy",
     "--site",
-    env.NETLIFY_SITE_ID,
+    netlifySiteId,
     "--auth",
     env.NETLIFY_AUTH_TOKEN,
   ],
