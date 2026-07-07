@@ -21,10 +21,11 @@ jobs:
         with:
           node-version: 24
 
-      - name: Write and deploy
+      - name: Write post and push
         run: npm run auto-blog:publish
         env:
           FREE_AUTO_BLOG: ${{ vars.FREE_AUTO_BLOG || '1' }}
+          SKIP_NETLIFY_DEPLOY: '1'
           SEARCH_KEYWORD: ${{ vars.SEARCH_KEYWORD || '부동산' }}
           POST_CATEGORY: ${{ vars.POST_CATEGORY || '부동산' }}
           POST_OUTPUT_DIR: posts
