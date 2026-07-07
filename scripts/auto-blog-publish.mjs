@@ -106,6 +106,9 @@ function run(command, commandArgs, options = {}) {
   }
 
   if (result.status !== 0) {
+    if (options.allowFailure) {
+      return result.stdout || "";
+    }
     if (result.stdout) process.stdout.write(result.stdout);
     if (result.stderr) process.stderr.write(result.stderr);
     process.exit(result.status || 1);
@@ -120,8 +123,8 @@ function git(commandArgs, options = {}) {
 }
 
 function ensureGitIdentity() {
-  const name = git(["config", "--get", "user.name"]).trim();
-  const email = git(["config", "--get", "user.email"]).trim();
+  const name = git(["config", "--get", "user.name"], { allowFailure: true }).trim();
+  const email = git(["config", "--get", "user.email"], { allowFailure: true }).trim();
 
   if (!name) git(["config", "user.name", "DailyPicker Bot"]);
   if (!email) git(["config", "user.email", "bot@dailypicker.kr"]);
