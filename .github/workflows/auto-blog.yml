@@ -31,10 +31,3 @@ jobs:
           POST_MIN_CHARS: ${{ vars.POST_MIN_CHARS || '2000' }}
           POST_MAX_CHARS: ${{ vars.POST_MAX_CHARS || '4000' }}
           SMARTSTORE_URL: ${{ vars.SMARTSTORE_URL }}
-          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          GOOGLE_CSE_ID: ${{ secrets.GOOGLE_CSE_ID }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || '6bb4af2f-7707-45cb-9c15-4848c3017c34' }}
